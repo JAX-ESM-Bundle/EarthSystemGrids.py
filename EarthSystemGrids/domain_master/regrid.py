@@ -12,16 +12,25 @@ import xarray as xr
 
 def _make_esmf_regridder(weight_file, *, frac_b_threshold: float = 0.0) -> Callable:
     """
-    Build a flat-(nface,)-array regridder callable from an ESMF weight
-    file, backed by EarthSystemGrids.base.esmf_regrid.ESMFRegridder.
+    Build a shape-preserving regridder callable from an ESMF weight file,
+    backed by EarthSystemGrids.base.esmf_regrid.ESMFRegridder.
 
-    Applies the weight file's row/col/S directly to the flat (n_a,) array
-    this repo's meshes already use (Domain.grid.face_lon/mask/area/etc.),
-    bypassing ESMFRegridder's own 2D (n_lon, n_lat) __call__/apply_batched
-    -- that reshape targets JEM's SlabGrid convention and isn't needed
-    here, since this repo's own SCRIP writer already lays out its flat
-    nface array in the same fastest-axis-first order ESMF expects (see
-    StructuredQuadMesh.write_to_SCRIP_grid_file's grid_dims=[ni,nj]).
+    Applies the weight file's row/col/S to the flat (n_a,) array this
+    repo's meshes already use (Domain.grid.face_lon/mask/area/etc.) -- a
+    flat (nface,) input comes back flat (nface,). A 2D (n_lon, n_lat)
+    input -- JEM's SlabGrid / ESMFRegridder.__call__ convention -- is also
+    accepted, and comes back 2D (n_lon, n_lat): it's Fortran-flattened
+    before regridding and Fortran-reshaped back to the weight file's own
+    dst_shape after, which needs no transpose because the two conventions
+    are the same underlying bytes -- this repo's SCRIP writer flattens
+    each mesh's face arrays in C order over its own (nj, ni) = (lat, lon)
+    logical shape, which is byte-identical to Fortran-order flattening a
+    (ni, nj) = (n_lon, n_lat) array (lon varies fastest either way; see
+    StructuredQuadMesh.write_to_SCRIP_grid_file's grid_dims=[ni,nj]). This
+    makes the callable a drop-in for jem.utils.esmf_regrid.ESMFRegridder
+    wherever a caller wants DomainMaster's registered transformation
+    instead of constructing its own ESMFRegridder from the same weight
+    file.
 
     frac_b isn't exposed on ESMFWeights, so it's read separately here.
     Destination cells with zero source coverage (frac_b <= frac_b_threshold)
@@ -42,10 +51,13 @@ def _make_esmf_regridder(weight_file, *, frac_b_threshold: float = 0.0) -> Calla
 
     def regridder(field_a):
         field_a = jnp.asarray(field_a)
-        dst = jnp.zeros(w.dst_size, dtype=field_a.dtype).at[w.row_indices].add(
-            field_a[w.col_indices] * w.weights
+        is_2d = field_a.ndim == 2
+        flat_a = field_a.reshape(-1, order="F") if is_2d else field_a
+        dst = jnp.zeros(w.dst_size, dtype=flat_a.dtype).at[w.row_indices].add(
+            flat_a[w.col_indices] * w.weights
         )
-        return jnp.where(frac_b <= frac_b_threshold, jnp.nan, dst)
+        dst = jnp.where(frac_b <= frac_b_threshold, jnp.nan, dst)
+        return dst.reshape(w.dst_shape, order="F") if is_2d else dst
 
     return regridder
 
@@ -82,10 +94,23 @@ def make_mask_regridder(mask, fill_value: float = np.nan) -> Callable:
     checked directly with check_coverage to confirm the masks partition
     the shared grid exactly, with no gaps or overlap.
 
-    Plain numpy, not jax -- unlike the ESMF weight-file regridder above,
-    nothing here runs inside a jax.jit/grad trace, so this keeps the
-    implementation simple rather than tracking jax array types through a
-    masking op that's normally cheap and eager.
+    The returned regridder runs `jnp.where` (jax lazily imported here, as
+    in `_make_esmf_regridder` above, so this module stays importable
+    without jax as long as only eager/numpy callers are used) rather than
+    `np.where`, so it works inside a jax.jit/grad trace -- needed for
+    callers like a "source"->"exchange" transformation invoked from
+    within a jitted coupling step. `mask` itself is still resolved and
+    cached as plain numpy (it's a concrete, non-traced domain field, not
+    something that varies under tracing).
+
+    Shape-preserving like `_make_esmf_regridder`: `mask` is always flat
+    (nface,) (a `Domain.mask`'s own convention), but `field_a` may be flat
+    (nface,) or 2D (n_lon, n_lat) (e.g. a Veros field, which is natively
+    2D) -- auto-detected from `field_a.ndim`. For a 2D `field_a`, the flat
+    mask is reshaped to `field_a.shape` with `order="F"` before the
+    `where` (byte-identical to the mask's own flat layout -- see
+    `_make_esmf_regridder`'s docstring for why -- so this needs no
+    transpose, just a shape wrapper matching `field_a`'s own).
 
     Raises ValueError if a concrete (non-callable) `mask` is None -- e.g.
     a domain's own `mask` field that was never set, passed directly rather
@@ -95,6 +120,8 @@ def make_mask_regridder(mask, fill_value: float = np.nan) -> Callable:
     instead. A callable is exempt from this eager check by design -- that
     is exactly the deferred-resolution case above.
     """
+    import jax.numpy as jnp
+
     if not callable(mask) and mask is None:
         raise ValueError("make_mask_regridder needs a mask, got None")
 
@@ -112,6 +139,10 @@ def make_mask_regridder(mask, fill_value: float = np.nan) -> Callable:
         _resolved_mask()  # eager: resolve (and cache) immediately, as before
 
     def regridder(field_a):
-        return np.where(_resolved_mask(), np.asarray(field_a), fill_value)
+        field_a = jnp.asarray(field_a)
+        mask = _resolved_mask()
+        if field_a.ndim == 2:
+            mask = mask.reshape(field_a.shape, order="F")
+        return jnp.where(mask, field_a, fill_value)
 
     return regridder

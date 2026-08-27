@@ -253,6 +253,17 @@ class DomainMaster:
 
         Raises TypeError if either domain's grid has no well-defined local
         i-direction (e.g. an UnstructuredGridMesh built via from_polygons).
+
+        Shape-preserving like transform_scalar/_make_esmf_regridder: `u`/
+        `v` may be flat (nface,) (this repo's own mesh convention) or 2D
+        (n_lon, n_lat) (JEM's SlabGrid convention), auto-detected from
+        `u.ndim`; the returned (u_grid_dst, v_grid_dst) come back in that
+        same shape family. `cos_angle`/`sin_angle` (from each mesh's
+        `extra_variables`) are always flat, so a 2D input is Fortran-
+        flattened before the elementwise rotation math and the final
+        result is Fortran-reshaped back to `target`'s (n_lon, n_lat) --
+        see _make_esmf_regridder's docstring for why Fortran order needs
+        no transpose here.
         """
         src_mesh = self._domains[source].grid
         dst_mesh = self._domains[target].grid
@@ -269,6 +280,17 @@ class DomainMaster:
                     f"({type(mesh).__name__}) has none"
                 )
 
+        if u.ndim != v.ndim:
+            raise ValueError(
+                f"transform_vector needs u and v in the same shape family -- got "
+                f"u.ndim={u.ndim} (shape {u.shape}), v.ndim={v.ndim} (shape {v.shape})"
+            )
+
+        is_2d = u.ndim == 2
+        if is_2d:
+            u = u.reshape(-1, order="F")
+            v = v.reshape(-1, order="F")
+
         cos_src, sin_src = _angle_trig(src_mesh)
         u_east = u * cos_src - v * sin_src
         v_north = u * sin_src + v * cos_src
@@ -280,6 +302,12 @@ class DomainMaster:
         cos_dst, sin_dst = _angle_trig(dst_mesh)
         u_grid_dst = u_east_dst * cos_dst + v_north_dst * sin_dst
         v_grid_dst = -u_east_dst * sin_dst + v_north_dst * cos_dst
+
+        if is_2d:
+            dst_shape = dst_mesh.shape[::-1]  # (nj, ni) -> (ni, nj) = (n_lon, n_lat)
+            u_grid_dst = u_grid_dst.reshape(dst_shape, order="F")
+            v_grid_dst = v_grid_dst.reshape(dst_shape, order="F")
+
         return u_grid_dst, v_grid_dst
 
     def check_coverage(
