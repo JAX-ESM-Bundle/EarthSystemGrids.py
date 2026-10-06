@@ -125,7 +125,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output",
         type=str,
-        default="preprocessing_workflow/GEBCO_bathymetry_res-0p1.nc",
+        default="GEBCO_bathymetry_res-0p1.nc",
         help="Output netCDF path",
     )
     args = parser.parse_args()
