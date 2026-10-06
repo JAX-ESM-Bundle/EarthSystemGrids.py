@@ -134,13 +134,16 @@ def clean_surface(grid, area, elevation, land_fraction, *, land_threshold, min_d
     land_fraction = land_fraction.copy()
     report = {}
 
+    """ commented out  by Tien-Yiao
     for strait in straits:
         mask, carved = carve_strait(grid, adjacency, mask, land_fraction, strait)
         land_fraction[carved] = 0.0
         report[f"carved:{strait.name}"] = carved
+    """
 
     mask, filled = fill_isolated_ocean(adjacency, mask, area)
-    land_fraction[filled] = 1.0
+    #commented out by Tien-Yiao
+    #land_fraction[filled] = 1.0
     report["filled:isolated_ocean"] = filled
 
     topography, bathymetry = derive_fields(elevation, mask, min_depth)
