@@ -31,7 +31,7 @@ if __name__ == "__main__":
         help="any conserve weight file whose destination is the surface grid (its area_b gives cell areas)",
     )
     parser.add_argument("--output", required=True, help="output netCDF path")
-    parser.add_argument("--land-threshold", type=float, default=0.5, help="land if land_fraction >= this (default: 0.5)")
+    parser.add_argument("--land-threshold", type=float, default=0.3, help="land if land_fraction >= this (default: 0.5)")
     parser.add_argument("--min-depth", type=float, default=10.0, help="minimum ocean depth in m (default: 10)")
     parser.add_argument(
         "--strait",

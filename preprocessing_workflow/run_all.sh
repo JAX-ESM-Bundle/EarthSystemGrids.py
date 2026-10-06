@@ -18,14 +18,14 @@ NPROC=16
 
 JCM_RESOLUTION=31                  # spectral truncation, e.g. 31 -> T31
 
-RGLL_NLAT=90
-RGLL_NLON=180
+RGLL_NLAT=60
+RGLL_NLON=120
 RGLL_LAT_SPACING=equal             # equal | offset | gaussian
 RGLL_LON_CENTERED=0                # 1 -> first longitude cell centered on 0 deg
 RGLL_ROTATION_DEG=12.0             # 0 -> no rotation
 RGLL_ROTATION_AXIS_LONGITUDE_DEG=48.0
 
-LAND_THRESHOLD=0.5
+LAND_THRESHOLD=0.3
 MIN_DEPTH=10.0
 
 # Required straits for 04_clean_surface.py
