@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+- The GEBCO topography/bathymetry workflow moved from `preprocessing_workflow/` to
+  `workflows/topobathymetry/`. Its logic is now importable:
+  `EarthSystemGrids.topobathymetry` (`gebco`, `cleanup`, `io`),
+  `EarthSystemGrids.base.adjacency` and `EarthSystemGrids.base.weight_regrid`.
+  The cleanup functions take a mesh instead of a SCRIP dict, and
+  `01_generate_bathymetry_0p1deg.py` now requires `--input`.
+- Packaging installs all subpackages; new `topo` extra (xarray, netCDF4, dask).
+
 ## [0.1.0] - 2026-08-19
 
 Initial beta release. Establishes a tested grid I/O core and ships a small,

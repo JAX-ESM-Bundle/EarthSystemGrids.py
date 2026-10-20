@@ -7,3 +7,4 @@ __pycache__
 *.egg-info
 *.nc
 !EarthSystemGrids/data/ERA5_landsea_mask.nc
+part2_output*/

@@ -3,7 +3,7 @@ Part 2, steps 3-4: clean the regridded surface fields (from
 03_regrid_to_surface.py) and write the final surface file with
 `land_fraction`, `landsea_mask`, `elevation`, `topography`, `bathymetry`.
 
-Rules, in order (see surface_cleanup.py):
+Rules, in order (see EarthSystemGrids/topobathymetry/cleanup.py):
   1. landsea_mask = land_fraction >= --land-threshold  (1 = land, 0 = ocean)
   2. each required strait (default: Indonesian throughflow) is carved open
      if its two basins are not connected inside its box
@@ -18,8 +18,9 @@ import argparse
 
 import numpy as np
 
-from common import WeightRegridder, read_grid_fields, read_scrip, write_grid_fields
-from surface_cleanup import INDONESIAN_THROUGHFLOW, Strait, clean_surface
+from EarthSystemGrids.base.weight_regrid import WeightRegridder
+from EarthSystemGrids.topobathymetry.cleanup import INDONESIAN_THROUGHFLOW, Strait, clean_surface
+from EarthSystemGrids.topobathymetry.io import read_grid_fields, read_mesh, write_grid_fields
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -50,12 +51,12 @@ if __name__ == "__main__":
     else:
         straits = [INDONESIAN_THROUGHFLOW]
 
-    grid = read_scrip(args.sfc_scrip)
+    mesh = read_mesh(args.sfc_scrip)
     area = WeightRegridder(args.area_weight).area_b
     raw = read_grid_fields(args.input, ["elevation", "land_fraction"])
 
     fields, report = clean_surface(
-        grid, area, raw["elevation"], raw["land_fraction"],
+        mesh, area, raw["elevation"], raw["land_fraction"],
         land_threshold=args.land_threshold, min_depth=args.min_depth, straits=straits,
     )
 
@@ -91,8 +92,9 @@ if __name__ == "__main__":
                 "units": "m",
             }),
         },
-        args.sfc_scrip,
+        mesh,
         attrs={
+            "grid_file": args.sfc_scrip,
             "source": args.input,
             "land_threshold": args.land_threshold,
             "min_depth": args.min_depth,

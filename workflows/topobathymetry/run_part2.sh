@@ -7,7 +7,7 @@
 #   04_clean_surface.py       steps 3-4: cleanup + final surface file
 #   05_regrid_to_atm.py       step 5: sfc land_fraction/topography -> atm
 #
-# Run from the repo root in an env with ESMF_RegridWeightGen and mpirun
+# Run in an env with EarthSystemGrids importable, ESMF_RegridWeightGen and mpirun
 # (e.g. the `jax` conda env). Arguments after `--` go to 04_clean_surface.py
 # (e.g. -- --land-threshold 0.3 --min-depth 20).
 
@@ -20,7 +20,7 @@ ATM_SCRIP=""
 SFC_SCRIP=""
 OUTPUT_DIR=part2_output
 NPROC=16
-INPUT_0P1="${SCRIPT_DIR}/GEBCO_bathymetry_res-0p1.nc"
+INPUT_0P1=GEBCO_bathymetry_res-0p1.nc
 # -----------------------------------------------------------------------------
 
 usage() {

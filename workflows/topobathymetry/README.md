@@ -1,15 +1,26 @@
 Here the earth topography and bathymetry are preprocessed from an ultra high-resolution data
 GEBCO (https://www.gebco.net/data-products/gridded-bathymetry-data).
 
-## Part 1: Prepare 0.1 degree data
-
-1. Download the raw GEBCO_2026 sub-ice grid (netCDF, ~7.4GB) and place it at the repo root as
-   `GEBCO_2026_sub_ice.nc`. This file is too big for git and is not tracked.
-
-2. Block-average it to a common 0.1 degree grid, run from the repo root:
+The scripts here are thin command-line wrappers. The logic lives in the package:
+`EarthSystemGrids.topobathymetry` (`gebco`, `cleanup`, `io`) plus
+`EarthSystemGrids.base.adjacency` and `EarthSystemGrids.base.weight_regrid`. Install the
+package with its extra dependencies (xarray, netCDF4, dask) first:
 
 ```
-python preprocessing_workflow/01_generate_bathymetry_0p1deg.py              # ~6 min -> GEBCO_bathymetry_res-0p1.nc
+pip install -e ".[topo]"
+```
+
+The scripts can then be run from any directory; inputs and outputs default to the current one.
+
+## Part 1: Prepare 0.1 degree data
+
+1. Download the raw GEBCO_2026 sub-ice grid (netCDF, ~7.4GB), e.g. as `GEBCO_2026_sub_ice.nc`.
+   This file is too big for git and is not tracked.
+
+2. Block-average it to a common 0.1 degree grid:
+
+```
+python workflows/topobathymetry/01_generate_bathymetry_0p1deg.py --input GEBCO_2026_sub_ice.nc   # ~6 min -> GEBCO_bathymetry_res-0p1.nc
 ```
 
    The resulting `GEBCO_bathymetry_res-0p1.nc` (~19MB, with `elevation` and `land_fraction`)
@@ -18,11 +29,12 @@ python preprocessing_workflow/01_generate_bathymetry_0p1deg.py              # ~6
 ## Part 2: Regrid to user-specified grid
 
 The atmosphere and surface grids are given as SCRIP files (e.g. from
-`script/generate_fractional_mask_via_ncremap*.sh`). Run from the repo root in an environment
-with `ESMF_RegridWeightGen` and `mpirun` (e.g. the `jax` conda env):
+`script/generate_fractional_mask_via_ncremap*.sh`, or `run_all.sh` here). Run in an environment
+with `ESMF_RegridWeightGen` and `mpirun` (e.g. the `jax` conda env), from the directory holding
+`GEBCO_bathymetry_res-0p1.nc` (or pass `--input-0p1`):
 
 ```
-preprocessing_workflow/run_part2.sh \
+workflows/topobathymetry/run_part2.sh \
     --atm-scrip grid/JCM_T31.SCRIP.nc \
     --sfc-scrip grid/RotatedGaussianLatLon.SCRIP.nc \
     -o part2_output --nproc 16 \
@@ -36,7 +48,7 @@ files, to the output directory. Each step can also be run on its own:
 |------|--------|
 | 1    | `02_generate_weights.sh` |
 | 2    | `03_regrid_to_surface.py` |
-| 3, 4 | `04_clean_surface.py` (rules live in `surface_cleanup.py`) |
+| 3, 4 | `04_clean_surface.py` (rules live in `EarthSystemGrids/topobathymetry/cleanup.py`) |
 | 5    | `05_regrid_to_atm.py` |
 
 1. Generate regrid weights:

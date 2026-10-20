@@ -12,11 +12,13 @@ import argparse
 
 import xarray as xr
 
-from common import WeightRegridder, global_mean, to_mesh_order, write_grid_fields
+from EarthSystemGrids.base.weight_regrid import WeightRegridder
+from EarthSystemGrids.topobathymetry.gebco import to_mesh_order
+from EarthSystemGrids.topobathymetry.io import global_mean, read_mesh, write_grid_fields
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--input", default="preprocessing_workflow/GEBCO_bathymetry_res-0p1.nc", help="Part 1 output")
+    parser.add_argument("--input", default="GEBCO_bathymetry_res-0p1.nc", help="Part 1 output")
     parser.add_argument("--weight", required=True, help="conserve weight file, GEBCO_0p1 -> surface grid")
     parser.add_argument("--sfc-scrip", required=True, help="SCRIP file of the surface grid")
     parser.add_argument("--output", required=True, help="output netCDF path")
@@ -52,6 +54,6 @@ if __name__ == "__main__":
                 "units": "1",
             }),
         },
-        args.sfc_scrip,
-        attrs={"source": args.input, "weight_file": args.weight},
+        read_mesh(args.sfc_scrip),
+        attrs={"grid_file": args.sfc_scrip, "source": args.input, "weight_file": args.weight},
     )

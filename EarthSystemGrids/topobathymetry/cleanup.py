@@ -1,8 +1,11 @@
 """
-Surface-grid cleanup rules for Part 2 step 3 (used by 04_clean_surface.py).
+Surface-grid cleanup rules: land-sea mask from land fraction, required
+straits, isolated-ocean filling, and topography/bathymetry consistent with
+the mask (used by workflows/topobathymetry/04_clean_surface.py).
 
-All functions take flat SCRIP-order arrays plus a `grid` dict from
-`common.read_scrip` and an adjacency graph from `common.face_adjacency`.
+All functions take flat arrays in the mesh's face order plus a mesh (e.g.
+from `EarthSystemGrids.topobathymetry.io.read_mesh`) and an adjacency graph
+from `EarthSystemGrids.base.adjacency.face_adjacency`.
 Masks use the README convention: 1 = land, 0 = ocean.
 """
 
@@ -12,7 +15,7 @@ import numpy as np
 import scipy.sparse
 from scipy.sparse.csgraph import connected_components, dijkstra
 
-from common import face_adjacency, lonlat_to_xyz
+from EarthSystemGrids.base.adjacency import face_adjacency, lonlat_to_xyz
 
 
 @dataclass
@@ -45,12 +48,24 @@ class Strait:
 # north of New Guinea, through the Maritime Continent only.
 INDONESIAN_THROUGHFLOW = Strait("indonesian_throughflow", 85.0, 155.0, -15.0, 15.0, (90.0, -5.0), (150.0, 5.0))
 
+# On coarse grids these keep the Mediterranean, Red Sea, Black Sea and
+# Hudson Bay connected to the open ocean; without them those seas are
+# filled as land.
+GIBRALTAR = Strait("gibraltar", 340.0, 10.0, 30.0, 42.0, (345.0, 36.0), (5.0, 38.0))
+BAB_EL_MANDEB = Strait("bab_el_mandeb", 35.0, 55.0, 5.0, 25.0, (38.0, 20.0), (52.0, 12.0))
+BOSPORUS = Strait("bosporus", 20.0, 42.0, 35.0, 47.0, (35.0, 43.0), (25.0, 37.0))
+HUDSON_STRAIT = Strait("hudson_strait", 270.0, 305.0, 50.0, 68.0, (275.0, 58.0), (302.0, 58.0))
 
-def _in_box(grid, strait):
+
+def _face_lonlat_deg(mesh):
+    return np.rad2deg(mesh.face_lon), np.rad2deg(mesh.face_lat)
+
+
+def _in_box(mesh, strait):
     """Box longitudes are taken mod 360; lon_min > lon_max means the box
     crosses 0 (e.g. 350,5 for Gibraltar)."""
-    lon = np.mod(grid["center_lon"], 360.0)
-    lat = grid["center_lat"]
+    lon, lat = _face_lonlat_deg(mesh)
+    lon = np.mod(lon, 360.0)
     lon_min, lon_max = np.mod(strait.lon_min, 360.0), np.mod(strait.lon_max, 360.0)
     if lon_min <= lon_max:
         in_lon = (lon >= lon_min) & (lon <= lon_max)
@@ -59,25 +74,26 @@ def _in_box(grid, strait):
     return in_lon & (lat >= strait.lat_min) & (lat <= strait.lat_max)
 
 
-def _nearest(grid, candidates, lonlat):
-    xyz = lonlat_to_xyz(grid["center_lon"][candidates], grid["center_lat"][candidates])
+def _nearest(mesh, candidates, lonlat):
+    lon, lat = _face_lonlat_deg(mesh)
+    xyz = lonlat_to_xyz(lon[candidates], lat[candidates])
     target = lonlat_to_xyz(*lonlat)
     return candidates[np.argmax(xyz @ target)]
 
 
-def carve_strait(grid, adjacency, landsea_mask, land_fraction, strait):
+def carve_strait(mesh, adjacency, landsea_mask, land_fraction, strait):
     """Return (new_mask, carved_cell_indices). If the two seeds' ocean cells
     are not connected within the strait's box, turn the cheapest path of
     land cells between them into ocean (cost of entering a land cell =
     1 + land_fraction, so the path prefers few and marginal land cells)."""
     mask = landsea_mask.copy()
-    box = np.flatnonzero(_in_box(grid, strait))
+    box = np.flatnonzero(_in_box(mesh, strait))
     box_ocean = box[mask[box] == 0]
     if box_ocean.size == 0:
         raise ValueError(f"strait {strait.name!r}: no ocean cell inside its box")
 
-    a = _nearest(grid, box_ocean, strait.seed_a)
-    b = _nearest(grid, box_ocean, strait.seed_b)
+    a = _nearest(mesh, box_ocean, strait.seed_a)
+    b = _nearest(mesh, box_ocean, strait.seed_b)
 
     sub_ocean = adjacency[box_ocean][:, box_ocean]
     _, labels = connected_components(sub_ocean, directed=False)
@@ -127,16 +143,16 @@ def derive_fields(elevation, landsea_mask, min_depth):
     return topography, bathymetry
 
 
-def clean_surface(grid, area, elevation, land_fraction, *, land_threshold, min_depth, straits):
+def clean_surface(mesh, area, elevation, land_fraction, *, land_threshold, min_depth, straits):
     """Apply every step-3 rule. Returns (fields dict, report dict)."""
-    adjacency = face_adjacency(grid)
+    adjacency = face_adjacency(mesh)
     mask = (land_fraction >= land_threshold).astype(np.int32)
     land_fraction = land_fraction.copy()
     report = {}
 
     """ commented out  by Tien-Yiao
     for strait in straits:
-        mask, carved = carve_strait(grid, adjacency, mask, land_fraction, strait)
+        mask, carved = carve_strait(mesh, adjacency, mask, land_fraction, strait)
         land_fraction[carved] = 0.0
         report[f"carved:{strait.name}"] = carved
     """

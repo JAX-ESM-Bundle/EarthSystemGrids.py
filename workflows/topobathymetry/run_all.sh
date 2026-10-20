@@ -6,7 +6,7 @@
 #
 # The grid options mirror script/generate_fractional_mask_via_ncremap.sh.
 # Needs Part 1's GEBCO_bathymetry_res-0p1.nc, and ESMF_RegridWeightGen +
-# mpirun on PATH (e.g. the `jax` conda env). Run from the repo root.
+# mpirun on PATH (e.g. the `jax` conda env).
 
 set -euo pipefail
 

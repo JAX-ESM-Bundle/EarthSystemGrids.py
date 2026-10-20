@@ -96,8 +96,8 @@ mkdir -p "$OUTPUT_DIR"
 src_scrip="${OUTPUT_DIR}/${SRC_LABEL}.SCRIP.nc"
 
 echo "Generating GEBCO 0.1deg SCRIP grid ..."
-PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH:-}" python3 -c "
-from common import build_0p1deg_mesh
+python3 -c "
+from EarthSystemGrids.topobathymetry.gebco import build_0p1deg_mesh
 build_0p1deg_mesh().write_to_SCRIP_grid_file('${src_scrip}', flatten=True)
 "
 

@@ -1,36 +1,31 @@
 """
-Tests for preprocessing_workflow's Part 2 surface cleanup, on a small
-synthetic global lat-lon grid (10 x 36, 18deg x 10deg cells).
+Tests for EarthSystemGrids.topobathymetry's surface cleanup, on a small
+synthetic global lat-lon grid (10 x 36, 18deg x 10deg cells), and for the
+0.1deg GEBCO grid edges.
 """
-
-import sys
-from pathlib import Path
 
 import numpy as np
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "preprocessing_workflow"))
-
-from common import face_adjacency, read_scrip  # noqa: E402
-from surface_cleanup import (  # noqa: E402
+from EarthSystemGrids.base.adjacency import face_adjacency
+from EarthSystemGrids.GaussianLatLon import equally_spaced_bounds, generate_mesh
+from EarthSystemGrids.topobathymetry.cleanup import (
     Strait,
+    _in_box,
     carve_strait,
     clean_surface,
     derive_fields,
     fill_isolated_ocean,
 )
-
-from EarthSystemGrids.GaussianLatLon import equally_spaced_bounds, generate_mesh  # noqa: E402
+from EarthSystemGrids.topobathymetry.gebco import build_0p1deg_mesh
+from EarthSystemGrids.topobathymetry.io import read_mesh
 
 NLAT, NLON = 10, 36
 
 
 @pytest.fixture(scope="module")
-def grid(tmp_path_factory):
-    mesh = generate_mesh(equally_spaced_bounds(NLAT, -90.0, 90.0), equally_spaced_bounds(NLON, 0.0, 360.0))
-    path = tmp_path_factory.mktemp("grid") / "test.SCRIP.nc"
-    mesh.write_to_SCRIP_grid_file(path, flatten=True)
-    return read_scrip(path)
+def grid():
+    return generate_mesh(equally_spaced_bounds(NLAT, -90.0, 90.0), equally_spaced_bounds(NLON, 0.0, 360.0))
 
 
 @pytest.fixture(scope="module")
@@ -120,8 +115,26 @@ def test_clean_surface_flips_land_fraction_only_where_edited(grid):
 
 
 def test_strait_box_can_cross_zero_longitude(grid):
-    from surface_cleanup import _in_box
-
     strait = Strait.parse("wrap:350,10,-10,10:355,0:5,0")
-    lon = np.mod(grid["center_lon"][_in_box(grid, strait)], 360.0)
+    lon = np.mod(np.rad2deg(grid.face_lon[_in_box(grid, strait)]), 360.0)
     assert set(np.round(lon)) == {355.0, 5.0}
+
+
+def test_adjacency_same_after_scrip_round_trip(grid, adjacency, tmp_path):
+    path = tmp_path / "test.SCRIP.nc"
+    grid.write_to_SCRIP_grid_file(path, flatten=True)
+    mesh = read_mesh(path)
+    assert mesh.shape == grid.shape
+    assert (face_adjacency(mesh) != adjacency).nnz == 0
+
+
+def test_0p1deg_mesh_edges():
+    # node-centered 0.1deg cells: full-width interior, half-width polar caps,
+    # longitude cells centered on 0, 0.1, ..., 359.9
+    mesh = build_0p1deg_mesh()
+    assert mesh.shape == (1801, 3600)
+    lat = np.rad2deg(mesh.face_lat).reshape(mesh.shape)[:, 0]
+    lon = np.rad2deg(mesh.face_lon).reshape(mesh.shape)[0, :]
+    np.testing.assert_allclose(lat[1:-1], np.arange(-89.9, 89.95, 0.1), atol=1e-9)
+    np.testing.assert_allclose(lon, np.arange(3600) * 0.1, atol=1e-9)
+    np.testing.assert_allclose(mesh.area.sum(), 4 * np.pi * 6.371e6**2, rtol=1e-3)

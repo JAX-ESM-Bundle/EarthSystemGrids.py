@@ -10,7 +10,8 @@ import argparse
 import numpy as np
 import xarray as xr
 
-from common import WeightRegridder, global_mean, read_grid_fields, write_grid_fields
+from EarthSystemGrids.base.weight_regrid import WeightRegridder
+from EarthSystemGrids.topobathymetry.io import global_mean, read_grid_fields, read_mesh, write_grid_fields
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -64,6 +65,6 @@ if __name__ == "__main__":
                 "units": "m",
             }),
         },
-        args.atm_scrip,
-        attrs={"source": args.input, "weight_file": args.weight, "land_threshold": threshold},
+        read_mesh(args.atm_scrip),
+        attrs={"grid_file": args.atm_scrip, "source": args.input, "weight_file": args.weight, "land_threshold": threshold},
     )

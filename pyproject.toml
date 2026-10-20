@@ -70,6 +70,11 @@ dev = [
     "sphinx>=4.5.0",
     "sphinx-rtd-theme>=1.0.0",
 ]
+topo = [
+    "xarray>=0.20.0",
+    "netCDF4>=1.5.0",
+    "dask>=2022.1.0",
+]
 notebooks = [
     "jupyter>=1.0.0",
     "jupyterlab>=3.0.0",
@@ -85,8 +90,8 @@ Homepage = "https://github.com/meteorologytoday/EarthSystemGrids"
 Repository = "https://github.com/meteorologytoday/EarthSystemGrids"
 Issues = "https://github.com/meteorologytoday/EarthSystemGrids/issues"
 
-[tool.setuptools]
-packages = ["EarthSystemGrids"]
+[tool.setuptools.packages.find]
+include = ["EarthSystemGrids*"]
 
 [tool.setuptools.package-data]
 EarthSystemGrids = ["py.typed"]
