@@ -29,7 +29,7 @@ python workflows/topobathymetry/01_generate_bathymetry_0p1deg.py --input GEBCO_2
 ## Part 2: Regrid to user-specified grid
 
 The atmosphere and surface grids are given as SCRIP files (e.g. from
-`script/generate_fractional_mask_via_ncremap*.sh`, or `run_all.sh` here). Run in an environment
+`script/generate_fractional_mask_via_ncremap*.sh`, or `run_all.py` below). Run in an environment
 with `ESMF_RegridWeightGen` and `mpirun` (e.g. the `jax` conda env), from the directory holding
 `GEBCO_bathymetry_res-0p1.nc` (or pass `--input-0p1`):
 
@@ -38,7 +38,15 @@ workflows/topobathymetry/run_part2.sh \
     --atm-scrip grid/JCM_T31.SCRIP.nc \
     --sfc-scrip grid/RotatedGaussianLatLon.SCRIP.nc \
     -o part2_output --nproc 16 \
-    -- --land-threshold 0.5 --min-depth 10     # optional, passed to 04_clean_surface.py
+    -- --land-threshold 0.5 --min-depth 10     # optional, passed to 04_ensure_featrues_of_topobathymetry_in_surface_grid.py
+```
+
+To build the grids from this repo's grid code and run everything in one go, describe the run in a
+YAML file (start from `ESG_config.yaml`: grid types and sizes, land threshold, minimum depth,
+required straits) and run:
+
+```
+python workflows/topobathymetry/run_all.py --config my_run.yaml
 ```
 
 This writes `sfc_topo_<sfc>.nc` (step 4) and `atm_topo_<atm>.nc` (step 5), plus the weight
@@ -47,8 +55,8 @@ files, to the output directory. Each step can also be run on its own:
 | Step | Script |
 |------|--------|
 | 1    | `02_generate_weights.sh` |
-| 2    | `03_regrid_to_surface.py` |
-| 3, 4 | `04_clean_surface.py` (rules live in `EarthSystemGrids/topobathymetry/cleanup.py`) |
+| 2    | `03_regrid_to_surface_grid.py` |
+| 3, 4 | `04_ensure_featrues_of_topobathymetry_in_surface_grid.py` (rules live in `EarthSystemGrids/topobathymetry/cleanup.py`) |
 | 5    | `05_regrid_to_atm.py` |
 
 1. Generate regrid weights:

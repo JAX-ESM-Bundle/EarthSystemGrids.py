@@ -74,6 +74,7 @@ topo = [
     "xarray>=0.20.0",
     "netCDF4>=1.5.0",
     "dask>=2022.1.0",
+    "pyyaml>=5.1",
 ]
 notebooks = [
     "jupyter>=1.0.0",

@@ -1,6 +1,6 @@
 """
 Part 2, step 5: conservatively regrid the cleaned surface `land_fraction`
-and `topography` (from 04_clean_surface.py) onto the atmosphere grid, and
+and `topography` (from 04_ensure_featrues_of_topobathymetry_in_surface_grid.py) onto the atmosphere grid, and
 threshold the atm land fraction into a binary `landsea_mask` with the same
 threshold used on the surface grid.
 """
@@ -15,7 +15,7 @@ from EarthSystemGrids.topobathymetry.io import global_mean, read_grid_fields, re
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--input", required=True, help="output of 04_clean_surface.py")
+    parser.add_argument("--input", required=True, help="output of 04_ensure_featrues_of_topobathymetry_in_surface_grid.py")
     parser.add_argument("--weight", required=True, help="conserve weight file, surface grid -> atm grid")
     parser.add_argument("--atm-scrip", required=True, help="SCRIP file of the atmosphere grid")
     parser.add_argument("--output", required=True, help="output netCDF path")
@@ -23,7 +23,7 @@ if __name__ == "__main__":
         "--land-threshold",
         type=float,
         default=None,
-        help="land if land_fraction >= this (default: the threshold stored by 04_clean_surface.py)",
+        help="land if land_fraction >= this (default: the threshold stored by 04_ensure_featrues_of_topobathymetry_in_surface_grid.py)",
     )
     args = parser.parse_args()
 

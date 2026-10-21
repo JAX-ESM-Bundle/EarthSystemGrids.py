@@ -2,13 +2,13 @@
 #
 # Run Part 2 of the GEBCO preprocessing workflow end to end (see README.md):
 #
-#   02_generate_weights.sh    step 1: weights 0.1deg->sfc, sfc<->atm
-#   03_regrid_to_surface.py   step 2: 0.1deg elevation/land_fraction -> sfc
-#   04_clean_surface.py       steps 3-4: cleanup + final surface file
-#   05_regrid_to_atm.py       step 5: sfc land_fraction/topography -> atm
+#   02_generate_weights.sh                                   step 1: weights 0.1deg->sfc, sfc<->atm
+#   03_regrid_to_surface_grid.py                             step 2: 0.1deg elevation/land_fraction -> sfc
+#   04_ensure_featrues_of_topobathymetry_in_surface_grid.py  steps 3-4: cleanup + final surface file
+#   05_regrid_to_atm.py                                      step 5: sfc land_fraction/topography -> atm
 #
 # Run in an env with EarthSystemGrids importable, ESMF_RegridWeightGen and mpirun
-# (e.g. the `jax` conda env). Arguments after `--` go to 04_clean_surface.py
+# (e.g. the `jax` conda env). Arguments after `--` go to step 04
 # (e.g. -- --land-threshold 0.3 --min-depth 20).
 
 set -euo pipefail
@@ -33,7 +33,7 @@ Usage: $(basename "$0") --atm-scrip FILE --sfc-scrip FILE [-o OUTPUT_DIR] [--npr
   -o, --output-dir DIR directory for all outputs (default: ${OUTPUT_DIR})
   --nproc N            MPI ranks for ESMF_RegridWeightGen (default: ${NPROC})
   --input-0p1 FILE     Part 1 output (default: ${INPUT_0P1})
-  -- CLEANUP_ARGS...   extra arguments passed to 04_clean_surface.py
+  -- CLEANUP_ARGS...   extra arguments passed to 04_ensure_featrues_of_topobathymetry_in_surface_grid.py
   -h, --help           show this help message
 EOF
 }

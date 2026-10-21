@@ -1,7 +1,7 @@
 """
 Surface-grid cleanup rules: land-sea mask from land fraction, required
 straits, isolated-ocean filling, and topography/bathymetry consistent with
-the mask (used by workflows/topobathymetry/04_clean_surface.py).
+the mask (used by workflows/topobathymetry/04_ensure_featrues_of_topobathymetry_in_surface_grid.py).
 
 All functions take flat arrays in the mesh's face order plus a mesh (e.g.
 from `EarthSystemGrids.topobathymetry.io.read_mesh`) and an adjacency graph

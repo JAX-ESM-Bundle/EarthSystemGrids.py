@@ -1,6 +1,6 @@
 """
 Part 2, steps 3-4: clean the regridded surface fields (from
-03_regrid_to_surface.py) and write the final surface file with
+03_regrid_to_surface_grid.py) and write the final surface file with
 `land_fraction`, `landsea_mask`, `elevation`, `topography`, `bathymetry`.
 
 Rules, in order (see EarthSystemGrids/topobathymetry/cleanup.py):
@@ -24,7 +24,7 @@ from EarthSystemGrids.topobathymetry.io import read_grid_fields, read_mesh, writ
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--input", required=True, help="output of 03_regrid_to_surface.py")
+    parser.add_argument("--input", required=True, help="output of 03_regrid_to_surface_grid.py")
     parser.add_argument("--sfc-scrip", required=True, help="SCRIP file of the surface grid")
     parser.add_argument(
         "--area-weight",

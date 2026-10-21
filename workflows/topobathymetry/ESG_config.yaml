@@ -1,0 +1,40 @@
+# A grid configuration of earth system model
+#
+# This particular paridigm has two grids: atmosphere and ocean grids.
+# Land goes with atmosphere grid, seaice goes with ocean grid.
+
+output_dir: part2_output         # grids, weights and outputs
+nproc: 16                        # MPI ranks for ESMF_RegridWeightGen
+input_0p1: GEBCO_bathymetry_res-0p1.nc   # Part 1 output
+
+grids:
+  atm:
+    type: JCMGrid
+    resolution: 31               # spectral truncation, e.g. 31 -> T31
+
+  sfc:
+    type: RotatedGaussianLatLon
+    nlat: 60
+    nlon: 120
+    lat_spacing: equal           # equal | offset | gaussian
+    lon_centered: false          # true -> first longitude cell centered on 0 deg
+    rotation_deg: 12.0           # 0 -> no rotation
+    rotation_axis_longitude_deg: 48.0
+
+cleanup:                         # passed to 04_ensure_featrues_of_topobathymetry_in_surface_grid.py
+  land_threshold: 0.3            # land if land_fraction >= this
+  min_depth: 10.0                # minimum ocean depth in m
+
+  # Required straits. A name refers to a constant in
+  # EarthSystemGrids/topobathymetry/cleanup.py; a custom one is given in full:
+  #   - {name: my_strait, box: [lon_min, lon_max, lat_min, lat_max],
+  #      seed_a: [lon, lat], seed_b: [lon, lat]}
+  # On coarse grids the commented ones keep the Mediterranean, Red Sea,
+  # Black Sea and Hudson Bay connected to the open ocean; without them those
+  # seas are filled as land.
+  straits:
+    - indonesian_throughflow
+    # - gibraltar
+    # - bab_el_mandeb
+    # - bosporus
+    # - hudson_strait
