@@ -71,13 +71,13 @@ set -x
     --atm-scrip "$ATM_SCRIP" --sfc-scrip "$SFC_SCRIP" \
     --output-dir "$OUTPUT_DIR" --nproc "$NPROC"
 
-python3 "${SCRIPT_DIR}/03_regrid_to_surface.py" \
+python3 "${SCRIPT_DIR}/03_regrid_to_surface_grid.py" \
     --input "$INPUT_0P1" \
     --weight "${OUTPUT_DIR}/weight_algo-conserve_GEBCO_0p1_to_${sfc_label}.nc" \
     --sfc-scrip "$SFC_SCRIP" \
     --output "${OUTPUT_DIR}/sfc_regridded_${sfc_label}.nc"
 
-python3 "${SCRIPT_DIR}/04_clean_surface.py" \
+python3 "${SCRIPT_DIR}/04_ensure_featrues_of_topobathymetry_in_surface_grid.py" \
     --input "${OUTPUT_DIR}/sfc_regridded_${sfc_label}.nc" \
     --sfc-scrip "$SFC_SCRIP" \
     --area-weight "${OUTPUT_DIR}/weight_algo-conserve_GEBCO_0p1_to_${sfc_label}.nc" \
