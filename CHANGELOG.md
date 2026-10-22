@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `01_generate_bathymetry_0p1deg.py` now requires `--input`.
 - Packaging installs all subpackages; new `topo` extra (xarray, netCDF4, dask, pyyaml).
 - `workflows/topobathymetry/run_all.sh` is replaced by `run_all.py`, configured by
-  `ESG_config.yaml` (grid types and sizes, cleanup threshold, depth, straits).
+  `configs/ESG_config.yaml` (grid types and sizes, cleanup threshold, depth, straits).
 
 ## [0.1.0] - 2026-08-19
 

@@ -42,11 +42,11 @@ workflows/topobathymetry/run_part2.sh \
 ```
 
 To build the grids from this repo's grid code and run everything in one go, describe the run in a
-YAML file (start from `ESG_config.yaml`: grid types and sizes, land threshold, minimum depth,
+YAML file (start from `configs/ESG_config.yaml`: grid types and sizes, land threshold, minimum depth,
 required straits) and run:
 
 ```
-python workflows/topobathymetry/run_all.py --config my_run.yaml
+python workflows/topobathymetry/run_all.py --config my_run.yaml --nproc 16
 ```
 
 This writes `sfc_topo_<sfc>.nc` (step 4) and `atm_topo_<atm>.nc` (step 5), plus the weight

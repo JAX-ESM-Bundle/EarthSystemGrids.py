@@ -1,6 +1,6 @@
 """
-Run all of Part 2 from a YAML config (default: ESG_config.yaml next to this
-script): generate the atm and surface grids as SCRIP files from this repo's
+Run all of Part 2 from a YAML config (default: configs/ESG_config.yaml next
+to this script): generate the atm and surface grids as SCRIP files from this repo's
 grid code, then hand them to run_part2.sh.
 
 Needs Part 1's GEBCO_bathymetry_res-0p1.nc, and ESMF_RegridWeightGen +
@@ -91,7 +91,10 @@ def strait_arg(entry):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--config", default=SCRIPT_DIR / "ESG_config.yaml", help="YAML config (default: %(default)s)")
+    parser.add_argument(
+        "--config", default=SCRIPT_DIR / "configs" / "ESG_config.yaml", help="YAML config (default: %(default)s)"
+    )
+    parser.add_argument("--nproc", type=int, default=4, help="MPI ranks for ESMF_RegridWeightGen (default: %(default)s)")
     args = parser.parse_args()
 
     with open(args.config) as f:
@@ -125,7 +128,7 @@ if __name__ == "__main__":
         "--atm-scrip", str(scrip["atm"]),
         "--sfc-scrip", str(scrip["sfc"]),
         "--output-dir", str(output_dir),
-        "--nproc", str(config["nproc"]),
+        "--nproc", str(args.nproc),
         "--input-0p1", str(config["input_0p1"]),
         "--", *cleanup_args,
     ]
