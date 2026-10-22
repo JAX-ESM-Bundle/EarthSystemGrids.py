@@ -12,6 +12,7 @@ from EarthSystemGrids.GaussianLatLon import equally_spaced_bounds, generate_mesh
 from EarthSystemGrids.topobathymetry.cleanup import (
     Strait,
     _in_box,
+    cap_north,
     carve_strait,
     clean_surface,
     derive_fields,
@@ -138,3 +139,24 @@ def test_0p1deg_mesh_edges():
     np.testing.assert_allclose(lat[1:-1], np.arange(-89.9, 89.95, 0.1), atol=1e-9)
     np.testing.assert_allclose(lon, np.arange(3600) * 0.1, atol=1e-9)
     np.testing.assert_allclose(mesh.area.sum(), 4 * np.pi * 6.371e6**2, rtol=1e-3)
+
+
+def test_cap_north_makes_flat_land(grid):
+    # all ocean; rows are 18deg wide, so centers at 81 and 63 lie north of 60
+    land_fraction = np.zeros(NLAT * NLON)
+    elevation = np.full(NLAT * NLON, -1000.0)
+    mask, capped = cap_north(grid, np.zeros(NLAT * NLON, dtype=np.int32), 60.0)
+    assert set(capped) == {idx(j, i) for j in (8, 9) for i in range(NLON)}
+    assert np.all(mask[capped] == 1)
+
+    fields, report = clean_surface(
+        grid, np.ones(land_fraction.size), elevation, land_fraction,
+        land_threshold=0.5, min_depth=10.0, straits=[], cap_lat=60.0, cap_elevation=5.0,
+    )
+    assert np.array_equal(report["capped:north"], capped)
+    assert np.all(fields["landsea_mask"][capped] == 1)
+    assert np.all(fields["land_fraction"][capped] == 1.0)
+    assert np.all(fields["topography"][capped] == 5.0)
+    assert np.all(fields["bathymetry"][capped] == 0.0)
+    assert fields["landsea_mask"].sum() == capped.size  # nothing else touched
+    assert np.all(elevation == -1000.0)                 # input not modified

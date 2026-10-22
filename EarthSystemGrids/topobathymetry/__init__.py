@@ -10,6 +10,7 @@ from EarthSystemGrids.topobathymetry.cleanup import (
     HUDSON_STRAIT,
     INDONESIAN_THROUGHFLOW,
     Strait,
+    cap_north,
     carve_strait,
     clean_surface,
     derive_fields,

@@ -5,6 +5,8 @@ Part 2, steps 3-4: clean the regridded surface fields (from
 
 Rules, in order (see EarthSystemGrids/topobathymetry/cleanup.py):
   1. landsea_mask = land_fraction >= --land-threshold  (1 = land, 0 = ocean)
+     with --cap-lat: cells at or north of it become flat land
+     (land_fraction 1, elevation --cap-elevation)
   2. each required strait (default: Indonesian throughflow) is carved open
      if its two basins are not connected inside its box
   3. every ocean body except the largest becomes land
@@ -42,6 +44,13 @@ if __name__ == "__main__":
         help="required connection between two basins; repeatable. Default: Indonesian throughflow",
     )
     parser.add_argument("--no-straits", action="store_true", help="skip strait carving entirely")
+    parser.add_argument(
+        "--cap-lat",
+        type=float,
+        default=None,
+        help="make cells at or north of this latitude (deg) flat land (default: no cap)",
+    )
+    parser.add_argument("--cap-elevation", type=float, default=0.0, help="elevation of capped cells in m (default: 0)")
     args = parser.parse_args()
 
     if args.no_straits:
@@ -58,6 +67,7 @@ if __name__ == "__main__":
     fields, report = clean_surface(
         mesh, area, raw["elevation"], raw["land_fraction"],
         land_threshold=args.land_threshold, min_depth=args.min_depth, straits=straits,
+        cap_lat=args.cap_lat, cap_elevation=args.cap_elevation,
     )
 
     print("Cleanup report:")
@@ -99,6 +109,7 @@ if __name__ == "__main__":
             "land_threshold": args.land_threshold,
             "min_depth": args.min_depth,
             "straits": "; ".join(f"{s.name} box=({s.lon_min},{s.lon_max},{s.lat_min},{s.lat_max})" for s in straits),
+            **({"cap_lat": args.cap_lat, "cap_elevation": args.cap_elevation} if args.cap_lat is not None else {}),
             **{f"cells_{rule.replace(':', '_')}": int(cells.size) for rule, cells in report.items()},
         },
     )

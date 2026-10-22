@@ -134,6 +134,17 @@ def fill_isolated_ocean(adjacency, landsea_mask, area):
     return mask, filled
 
 
+def cap_north(mesh, landsea_mask, cap_lat):
+    """Return (new_mask, capped_cell_indices): every cell whose center is at
+    or north of `cap_lat` (geographic, degrees) becomes land. Removes the
+    ocean near the pole singularity of an unrotated lat-lon ocean grid."""
+    mask = landsea_mask.copy()
+    _, lat = _face_lonlat_deg(mesh)
+    capped = np.flatnonzero(lat >= cap_lat)
+    mask[capped] = 1
+    return mask, capped
+
+
 def derive_fields(elevation, landsea_mask, min_depth):
     """topography and bathymetry from the regridded mean elevation, made
     consistent with the (cleaned) mask."""
@@ -143,12 +154,23 @@ def derive_fields(elevation, landsea_mask, min_depth):
     return topography, bathymetry
 
 
-def clean_surface(mesh, area, elevation, land_fraction, *, land_threshold, min_depth, straits):
-    """Apply every step-3 rule. Returns (fields dict, report dict)."""
+def clean_surface(mesh, area, elevation, land_fraction, *, land_threshold, min_depth, straits,
+                  cap_lat=None, cap_elevation=0.0):
+    """Apply every step-3 rule. Returns (fields dict, report dict).
+
+    With `cap_lat` set, cells at or north of it become flat land:
+    land_fraction 1 and elevation `cap_elevation` (m)."""
     adjacency = face_adjacency(mesh)
     mask = (land_fraction >= land_threshold).astype(np.int32)
     land_fraction = land_fraction.copy()
+    elevation = elevation.copy()
     report = {}
+
+    if cap_lat is not None:
+        mask, capped = cap_north(mesh, mask, cap_lat)
+        land_fraction[capped] = 1.0
+        elevation[capped] = cap_elevation
+        report["capped:north"] = capped
 
     """ commented out  by Tien-Yiao
     for strait in straits:
