@@ -160,3 +160,20 @@ def test_cap_north_makes_flat_land(grid):
     assert np.all(fields["bathymetry"][capped] == 0.0)
     assert fields["landsea_mask"].sum() == capped.size  # nothing else touched
     assert np.all(elevation == -1000.0)                 # input not modified
+
+
+def test_binary_landsea_matches_mask(grid):
+    land_fraction = np.zeros(NLAT * NLON)
+    land_fraction[[idx(j, 0) for j in range(NLAT)]] = 0.9
+    land_fraction[idx(5, 20)] = 0.3                     # below threshold: stays ocean
+    land_fraction[idx(5, 21)] = 0.7                     # above threshold: land
+    elevation = np.where(land_fraction >= 0.5, 200.0, -1000.0)
+
+    fields, _ = clean_surface(
+        grid, np.ones(land_fraction.size), elevation, land_fraction,
+        land_threshold=0.5, min_depth=10.0, straits=[], cap_lat=60.0, binary_landsea=True,
+    )
+    assert set(np.unique(fields["land_fraction"])) == {0.0, 1.0}
+    assert np.array_equal(fields["land_fraction"], fields["landsea_mask"])
+    assert fields["land_fraction"][idx(5, 20)] == 0.0
+    assert fields["land_fraction"][idx(5, 21)] == 1.0

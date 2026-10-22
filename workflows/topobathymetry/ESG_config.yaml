@@ -26,6 +26,7 @@ cleanup:                         # passed to 04_ensure_featrues_of_topobathymetr
   min_depth: 10.0                # minimum ocean depth in m
   # cap_lat: 80.0                # cells at or north of this latitude become flat land
   # cap_elevation: 0.0           # elevation of capped cells in m (default 0)
+  binary_landsea: false          # true -> land_fraction is 0 or 1, equal to landsea_mask
 
   # Required straits. A name refers to a constant in
   # EarthSystemGrids/topobathymetry/cleanup.py; a custom one is given in full:

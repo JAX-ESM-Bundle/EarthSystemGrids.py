@@ -115,6 +115,8 @@ if __name__ == "__main__":
             cleanup_args += ["--strait", strait_arg(entry)]
     else:
         cleanup_args.append("--no-straits")
+    if clean.get("binary_landsea", False):
+        cleanup_args.append("--binary-landsea")
     if clean.get("cap_lat") is not None:
         cleanup_args += ["--cap-lat", str(clean["cap_lat"]), "--cap-elevation", str(clean.get("cap_elevation", 0.0))]
 

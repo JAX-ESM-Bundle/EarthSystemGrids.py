@@ -155,11 +155,14 @@ def derive_fields(elevation, landsea_mask, min_depth):
 
 
 def clean_surface(mesh, area, elevation, land_fraction, *, land_threshold, min_depth, straits,
-                  cap_lat=None, cap_elevation=0.0):
+                  cap_lat=None, cap_elevation=0.0, binary_landsea=False):
     """Apply every step-3 rule. Returns (fields dict, report dict).
 
     With `cap_lat` set, cells at or north of it become flat land:
-    land_fraction 1 and elevation `cap_elevation` (m)."""
+    land_fraction 1 and elevation `cap_elevation` (m).
+
+    With `binary_landsea`, the returned land_fraction is the final mask
+    itself (0 or 1 everywhere)."""
     adjacency = face_adjacency(mesh)
     mask = (land_fraction >= land_threshold).astype(np.int32)
     land_fraction = land_fraction.copy()
@@ -183,6 +186,9 @@ def clean_surface(mesh, area, elevation, land_fraction, *, land_threshold, min_d
     #commented out by Tien-Yiao
     #land_fraction[filled] = 1.0
     report["filled:isolated_ocean"] = filled
+
+    if binary_landsea:
+        land_fraction = mask.astype(np.float64)
 
     topography, bathymetry = derive_fields(elevation, mask, min_depth)
     fields = {
